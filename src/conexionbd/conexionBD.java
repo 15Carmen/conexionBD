@@ -1,12 +1,15 @@
 package conexionbd;
 
 import java.sql.*;
+import java.util.Scanner;
 
 public class conexionBD {
 
     private static String servidor = "jdbc:mysql://dns11036.phdns11.es";
     private static Connection connection;
     private static Statement st = null;
+
+    static Scanner sc = new Scanner(System.in);
 
     public static void main(String[] args) throws SQLException {
         crearConexion();
@@ -22,7 +25,13 @@ public class conexionBD {
         //mediaEdad();
         //apellidosOH();
         //franjaEdad();
-        mayores65();
+        //mayores65();
+        //crearLaboral();
+        //actualizarDatos();
+        //listaNombres();
+        //listaNombreApellidos();
+        cambiarPassword();
+
     }
 
     public static void crearConexion() {
@@ -33,6 +42,11 @@ public class conexionBD {
         } catch (ClassNotFoundException | SQLException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    //cambiar la contraseña del usuario de la base de datos
+    public static void cambiarPassword() throws SQLException {
+        PreparedStatement ps = connection.prepareStatement("SET PASSWORD for 'cmartin' = password('Marnu')");
     }
 
 
@@ -274,8 +288,23 @@ public class conexionBD {
 
     private static void mostrar(String sql) throws SQLException {
         ResultSet resultSet = st.executeQuery(sql);
+        mostrar2mismos(resultSet);
+    }
+
+    private static void mostrar2mismos(ResultSet resultSet) throws SQLException{
         while (resultSet.next()){
-            System.out.println(resultSet.getString("nombre")+"\t"+resultSet.getString("apellidos")+"\t"+resultSet.getString("edad"));
+            System.out.println(resultSet.getString("nombre")+"\t"+
+                                resultSet.getString("apellidos")+"\t"+
+                                resultSet.getString("edad"));
+        }
+    }
+
+    private static void mostrarNAE(String sql) throws SQLException {
+        ResultSet resultSet = st.executeQuery(sql);
+        while (resultSet.next()){
+            System.out.println(resultSet.getString("nombre")+"\t"+
+                                resultSet.getString("apellidos")+"\t"+
+                                resultSet.getString("edad"));
         }
     }
 
@@ -289,31 +318,31 @@ public class conexionBD {
     //Listado ordenado por edad.
     public static void ordenarEdad() throws SQLException {
         String sql ="Select nombre, apellidos, edad From ad2223.cmartin ORDER BY edad";
-        mostrar(sql);
+        mostrarNAE(sql);
     }
 
     //Listado de los nombres y apellidos ordenados por apellido.
     public static void ordenarApellidos() throws SQLException {
         String sql = "Select nombre, apellidos, edad From ad2223.cmartin ORDER BY apellidos";
-        mostrar(sql);
+        mostrarNAE(sql);
     }
 
     //Listado de nombres y apellidos de más de 30 años
     public static void mayores30() throws SQLException {
         String sql = "Select * From ad2223.cmartin WHERE edad>30 ORDER BY edad";
-        mostrar(sql);
+        mostrarNAE(sql);
     }
 
     //Listado de los nombres que comiencen por "J" ordenados por apellido.
     public static void nombresJ() throws SQLException {
         String sql = "Select * From ad2223.cmartin WHERE nombre LIKE 'J%' ORDER BY apellidos";
-        mostrar(sql);
+        mostrarNAE(sql);
     }
 
     //Listado de los nombres que comiencen por "C" y los apellidos por "A" ordenados por edad de mayor a menor.
     public static void nombresCapellidosA() throws SQLException {
         String sql = "Select * From ad2223.cmartin WHERE nombre LIKE 'C%' and apellidos LIKE 'A%' ORDER BY edad DESC";
-        mostrar(sql);
+        mostrarNAE(sql);
     }
 
     //Media de edad de la muestra.
@@ -325,21 +354,76 @@ public class conexionBD {
     //Listado de los apellidos que contengan las letras "oh" o las letras "ma" (si el resultado fuera nulo, cambiar las letras)
     public static void apellidosOH() throws SQLException {
         String sql = "Select * From ad2223.cmartin WHERE apellidos LIKE '%oh%' OR apellidos LIKE '%ma%' ";
-        mostrar(sql);
+        mostrarNAE(sql);
     }
 
     //Listado de las personas en la franja de edad comprendida entre los 24 y los 32 años.
     public static void franjaEdad() throws SQLException{
         String sql = "Select * From ad2223.cmartin WHERE edad BETWEEN 24 AND 32 ORDER BY edad ";
-        mostrar(sql);
+        mostrarNAE(sql);
     }
 
     //Listado de las personas mayores de 65 años.
     public static void mayores65() throws SQLException{
         String sql = "Select * From ad2223.cmartin WHERE edad>65 ORDER BY edad ";
-        mostrar(sql);
+        mostrarNAE(sql);
     }
 
     //Crea una columna denominada "laboral" que contendrá los siguientes valores: estudiante, ocupado, parado, jubilado.
+    public static void crearLaboral() throws SQLException{
+        String sql ="ALTER TABLE ad2223.cmartin ADD laboral ENUM('Estudiante', 'Ocupado', 'Jubilado')";
+        try{
+            st.executeUpdate(sql);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static void actualizarDatos() throws SQLException{
+       /*
+        String updateEstudiante = "UPDATE ad2223.cmartin (laboral) = 'Estudiante' WHEN edad<18";
+        String updateJubilado = "UPDATE ad2223.cmartin (laboral) = 'Jubilado' WHEN edad>65";
+        String updateParado = "UPDATE ad2223.cmartin (laboral) = 'Parado' WHEN edad % 2 = 1 AND edad BETWEEN 18 AND 65";
+        String updateOcupado = "UPDATE ad2223.cmartin (laboral) = 'Ocupado' WHEN edad % 2 = 0 AND edad BETWEEN 18 AND 65";
+        */
+
+        String sql = "UPDATE ad2223.cmartin SET laboral = CASE " +
+                "WHEN edad<18 THEN 'Estudiante'"+
+                "WHEN edad>65 THEN 'Jubilado'"+
+                "WHEN edad % 2 = 1 AND edad BETWEEN 18 AND 65 THEN 'Parado'"+
+                "WHEN edad % 2 = 0 AND edad BETWEEN 18 AND 65 THEN 'Ocupado'";
+        try {
+            st.executeUpdate(sql);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    //Listado de los nombres que comiencen por una letra introducida por teclado.
+    public static void listaNombres() throws SQLException{
+        System.out.println("Introduzca una letra: ");
+        String letra = sc.nextLine();
+        letra+="%";
+        PreparedStatement ps = connection.prepareStatement("SELECT * from ad2223.cmartin WHERE nombre LIKE ?");
+        ps.setString(1, letra);
+        ResultSet rs = ps.executeQuery();
+        mostrar2mismos(rs);
+    }
+
+    //Listado de los nombres y apellidoos que comiencen por una letra introducida por teclado.
+    public static void listaNombreApellidos() throws SQLException{
+        System.out.println("Introduzca una letra para el nombre: ");
+        String letra1 = sc.nextLine();
+        letra1+="%";
+        System.out.println("Introduzca una letra para el apellido: ");
+        String letra2 = sc.nextLine();
+        letra2+="%";
+        PreparedStatement ps = connection.prepareStatement("SELECT * from ad2223.cmartin WHERE nombre LIKE ? or apellidos LIKE ?");
+        ps.setString(1, letra1);
+        ps.setString(2, letra2);
+        ResultSet rs = ps.executeQuery();
+        mostrar2mismos(rs);
+    }
 
 }
